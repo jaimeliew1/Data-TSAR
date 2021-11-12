@@ -72,16 +72,28 @@ def extract_matching_filenames(directory, pattern_string):
     return out, fields
 
 
-def evaluate_file(fn, operations, channels):
+def evaluate_file(fn, operations, channels, tstart=None, tend=None, chunks=1):
     """Evaluate operation list on a single data file."""
     raw = ReadHawc2(fn, channels)
-    ans = []
-    labels = []
-    for opdict in operations:
-        _ans, _labels = evaluate_single_op(raw, **opdict)
-        ans.extend(_ans)
-        labels.extend(_labels)
 
+    tstart = tstart or raw.index[0]
+    tend = tend or raw.index[-1]
+    ans = []
+
+    index_chunks = np.array_split(
+        raw.index[(raw.index >= tstart) & (raw.index <= tend)], chunks
+    )
+
+    for i, indices in enumerate(index_chunks):
+        chunk_ans = [i]
+        labels = ["chunk"]
+        for opdict in operations:
+            _ans, _labels = evaluate_single_op(raw.loc[indices], **opdict)
+            chunk_ans.extend(_ans)
+            labels.extend(_labels)
+        ans.append(chunk_ans)
+
+    ans = np.array(ans)
     return ans, labels
 
 
@@ -94,19 +106,13 @@ def evaluate_single_op(
     func,
     channels: dict,
     label: str,
-    chunk: int,
-    chunk_len: int,
     kwargs,
 ):
     """Evaluate a single operation on a timeseries DataFrame."""
     ans = []
     labels = []
-    if chunk_len is None:
-        chunk_len = len(raw)
-    i_lower = chunk_len * chunk
-    i_upper = chunk_len * (chunk + 1)
     for ch in channels:
-        ans.append(func(raw[ch].iloc[i_lower:i_upper].values, **kwargs))
+        ans.append(func(raw[ch].values, **kwargs))
         labels.append(f"{ch}_{label}")
 
     return ans, labels
@@ -134,8 +140,6 @@ class TimeSeriesAggregator(object):
         op: str,
         channels: dict,
         label=None,
-        chunk: int = 0,
-        chunk_len=None,
         **kwargs,
     ):
         """Add an operation to the operation list."""
@@ -154,29 +158,36 @@ class TimeSeriesAggregator(object):
             "func": op_dict[op],
             "channels": channels,
             "label": label,
-            "chunk": chunk,
-            "chunk_len": chunk_len,
             "kwargs": kwargs,
         }
         self.operations.append(op_to_add)
 
-    def run(self):
+    def run(self, tstart=None, tend=None, chunks=1):
         """Runs all operations in operation list on all data files."""
         ans_all = []
         for fn in tqdm(self._filenames):
-            ans, labels = evaluate_file(fn, self.operations, self.channels)
+            ans, labels = evaluate_file(
+                fn, self.operations, self.channels, tstart, tend, chunks
+            )
 
             ans_all.append(ans)
 
-        df = pd.DataFrame(np.array(ans_all), columns=labels)
+        ans_all = np.vstack(ans_all)
+        df = pd.DataFrame(ans_all, columns=labels)
+        self.data = self.data.loc[self.data.index.repeat(chunks)].reset_index(drop=True)
         self.data = pd.concat([self.data, df], axis=1)
 
-    def run_par(self, nproc=None):
+    def run_par(self, nproc=None, tstart=None, tend=None, chunks=1):
         """Runs in parallel all operations in operation list on all data files."""
         ans_all = []
         N = len(self._filenames)
         args_iterable = zip(
-            self._filenames, repeat(self.operations), repeat(self.channels)
+            self._filenames,
+            repeat(self.operations),
+            repeat(self.channels),
+            repeat(tstart),
+            repeat(tend),
+            repeat(chunks),
         )
         with Pool(nproc) as pool:
             for res, labels in tqdm(
@@ -184,5 +195,7 @@ class TimeSeriesAggregator(object):
             ):
                 ans_all.append(res)
 
-        df = pd.DataFrame(np.array(ans_all), columns=labels)
+        ans_all = np.vstack(ans_all)
+        df = pd.DataFrame(ans_all, columns=labels)
+        self.data = self.data.loc[self.data.index.repeat(chunks)].reset_index(drop=True)
         self.data = pd.concat([self.data, df], axis=1)
