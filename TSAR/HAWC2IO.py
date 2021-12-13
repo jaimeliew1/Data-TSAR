@@ -73,6 +73,10 @@ def load_csv(fn, channels=None):
         channels = {x: x for x in range(1, params["channels"] + 1)}
 
     channels["t"] = 1
+
+    # sort channels by channel number
+    channels = dict(sorted(channels.items(), key=lambda item: item[1]))
+    
     columns = [x - 1 for x in channels.values()]
 
     data = np.loadtxt(fn.with_suffix(".dat"), usecols=columns)
@@ -127,6 +131,9 @@ def load_hdf5(fn, channels):
     fn = Path(fn)
     assert fn.exists(), f"{fn} cannot be found."
 
+    # sort channels by channel number
+    channels = dict(sorted(channels.items(), key=lambda item: item[1]))
+
     with h5py.File(fn, "r") as fid:
         t, data = load_data_from_fid(fid, channels=channels)
 
@@ -143,6 +150,9 @@ def load_flex(fn, channels):
     if "t" not in channels:
         channels["t"] = 0
     channels = {k: v + 2 if k != "t" else v for k, v in channels.items()}
+
+    # sort channels by channel number
+    channels = dict(sorted(channels.items(), key=lambda item: item[1]))
     df = pd.read_csv(
         fn, sep="\s+", names=channels.keys(), index_col=0, usecols=channels.values(),
     )
