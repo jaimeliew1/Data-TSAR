@@ -9,7 +9,7 @@ Data-TSAR (Data Time-series Satistical AggRegator) helps you to post-process tim
 
 # Usage
 Data-TSAR performs data aggregation on a specified file directory on files which match a simplified Regex pattern. Lets look at an example which calculates the mean and damage equivalent loads of some time series files and prints a Pandas DataFrame of the results:
-```
+```python
 from TSAR import TimeSeriesAggregator
 
 channels = {
