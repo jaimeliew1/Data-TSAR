@@ -8,12 +8,12 @@ from itertools import repeat
 from multiprocessing import Pool
 
 from .HAWC2IO import read as ReadHawc2
-from wetb.fatigue_tools.fatigue import eq_load
+from rustfatigue import eq_load
 
 
 def DEL_func(x, m, neq):
     """Calculate damage equivalent load from time series."""
-    return eq_load(x, m=m, neq=neq)[0][0]
+    return eq_load(x, m=m, neq=neq)
 
 
 op_dict = {

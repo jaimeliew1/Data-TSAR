@@ -8,6 +8,6 @@ setup(
     author="Jaime Liew",
     author_email="jaimeliew1@gmail.com",
     packages=["TSAR"],
-    install_requires=["h5py", "numpy", "scipy", "pandas", "rich", "click", "wetb"],
+    install_requires=["h5py", "numpy", "scipy", "pandas", "rich", "click", "rust-fatigue"],
     entry_points={"console_scripts": ["tsar-inspect=TSAR.cli:inspect"]},
 )
