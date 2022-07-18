@@ -140,7 +140,7 @@ def load_hdf5(fn, channels):
     df = pd.DataFrame(data)
     if channels:
         df.columns = [key for key, val in channels.items() if val != 1]
-    df["t"] = t
+    df["t"] = t[:len(df)]
     df = df.set_index("t")
     return df
 
