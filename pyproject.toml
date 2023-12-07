@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "data-tsar"
+version = "0.1.0"
+description = "dataTSAR will help you process your HAWC2 result files in bulk."
+authors = ["Jaime Liew <jaimeliew1@gmail.com>"]
+readme = "README.md"
+packages = [{include = "TSAR"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = ">=1.16.5"
+
+scipy = ">=1.6"
+rust-fatigue = "^0.1.4"
+pandas = ">=2"
+tqdm = "^4.66.1"
+click = "^8.1.7"
+h5py = "^3.10.0"
+rich = "^13.7.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+tsar-inspect = "TSAR.cli:inspect"
